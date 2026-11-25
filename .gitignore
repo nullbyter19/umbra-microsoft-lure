@@ -1,0 +1,12 @@
+# build artifacts
+dist/
+__pycache__/
+*.pyc
+
+# local secrets / session config (never commit the real passphrase or domain)
+scripts/umbra.env
+*.pem
+*.key
+*.crt
+dist/
+*.exe
